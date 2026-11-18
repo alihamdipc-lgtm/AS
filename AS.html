@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>قلب مبرمج</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Agrave+Pro:wght@100..700&family=Libre+Baskerville:ital,wght@0,400..700;1,400..700&family=Momo+Signature&display=swap">
+<style>
+:root{--bg:#000;--fg:#fff;--rose:#ff4d6d;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme: dark){:root{--bg:#000;--fg:#fff}}
+html,body{height:100%;margin:0;background:radial-gradient(ellipse at 50% 45%,#1d0509 0%,#080102 55%,#000 100%) var(--bg);color:var(--fg);font-family:Tahoma,Arial,sans-serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px}
+h1{font:700 1.55rem 'Aref Ruqaa','Amiri',serif;margin:0;padding:.2em .3em;text-align:center;background:linear-gradient(180deg,#fff4f6,#ffb3c1 60%,#ff7a93);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 10px rgba(255,80,110,.35))}
+canvas{max-width:100%}
+canvas.done{filter:drop-shadow(0 0 14px rgba(255,30,70,.4));animation:beat 2.8s ease-in-out infinite}
+@keyframes beat{0%,100%{transform:scale(1)}12%{transform:scale(1.022)}24%{transform:scale(1)}36%{transform:scale(1.014)}48%{transform:scale(1)}}
+.row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+button{background:linear-gradient(180deg,rgba(255,77,109,.28),rgba(160,10,40,.35));color:#ffe3ea;border:1px solid rgba(255,120,145,.55);border-radius:999px;padding:10px 24px;font-size:1rem;cursor:pointer;backdrop-filter:blur(6px)}
+</style>
+</head>
+<body>
+<h1>💗 بين عينيكِ وقلبي حكاية لا يعرفها سوانا 💗</h1>
+<canvas id="c"></canvas>
+<div class="row"><button id="b">Re</button><button id="n">💌</button></div>
+<script>
+const DUR=30000,N=3000,LEFT='ALi',RIGHT='ShAmS';
+const c=document.getElementById('c'),ctx=c.getContext('2d');
+const size=Math.min(innerWidth-16,520),dpr=Math.min(devicePixelRatio||1,2);
+c.width=c.height=size*dpr;c.style.width=c.style.height=size+'px';
+ctx.scale(dpr,dpr);
+const hx=k=>15*Math.sin(k)**3,hy=k=>12*Math.cos(k)-5*Math.cos(2*k)-2*Math.cos(3*k)-Math.cos(4*k);
+const S=size/40,ox=size/2,oy=size*.45,cl=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)),ease=v=>1-Math.pow(1-cl(v),3);
+let i=0,raf=0,snap=null,run=0,t0=0;
+function line(k){
+  const a=k/10,X=ox+hx(a)*S,Y=oy-hy(a)*S,t=cl((hy(a)+16)/24);
+  ctx.globalCompositeOperation='lighter';
+  ctx.strokeStyle='hsla(0,100%,'+(24+24*t)+'%,.14)';
+  ctx.lineWidth=.9;ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(X,Y);ctx.stroke();
+  ctx.fillStyle='hsla('+(350-6*t)+',100%,'+(60+14*t)+'%,.85)';
+  ctx.fillRect(X-.6,Y-.6,1.2,1.2);
+}
+function finish(){
+  while(i<N)line(i++);
+  ctx.globalCompositeOperation='source-over';
+  snap=ctx.getImageData(0,0,c.width,c.height);c.classList.add('done');
+}
+function loop(now){
+  const p=cl((now-t0)/DUR),e=.55*p+.45*p*p*(3-2*p),tg=Math.floor(e*N);
+  while(i<tg)line(i++);
+  if(p<1)raf=requestAnimationFrame(loop);else finish();
+}
+function start(){
+  cancelAnimationFrame(raf);run++;i=0;snap=null;
+  ctx.globalCompositeOperation='source-over';ctx.clearRect(0,0,size,size);
+  c.classList.remove('done');t0=performance.now();raf=requestAnimationFrame(loop);
+}
+async function writeName(){
+  const my=++run;cancelAnimationFrame(raf);
+  if(i<N||!snap)finish();
+  try{await document.fonts.load('64px "Pinyon Script"');}catch(e){}
+  if(my!==run)return;
+  let fs=size*.13,font;
+  const fam='"Pinyon Script","Snell Roundhand","Brush Script MT",cursive';
+  let wL,wR,hw,gap,total;
+  for(;;){
+    font=fs+'px '+fam;ctx.font=font;
+    wL=ctx.measureText(LEFT).width;wR=ctx.measureText(RIGHT).width;hw=fs*.4;gap=fs*.16;
+    total=wL+gap+hw+gap+wR;if(total<=size*.5)break;fs*=.94;
+  }
+  const y=oy+S*2.2,x0=ox-total/2,xr=x0+wL+gap+hw+gap,step=.27;
+  const toks=[];
+  LEFT.split('').forEach((ch,j)=>toks.push({ch,x:x0+ctx.measureText(LEFT.slice(0,j)).width,d:j*step}));
+  toks.push({heart:1,x:x0+wL+gap+hw/2,d:LEFT.length*step+.1});
+  RIGHT.split('').forEach((ch,j)=>toks.push({ch,x:xr+ctx.measureText(RIGHT.slice(0,j)).width,d:(LEFT.length+1+j)*step+.2}));
+  const st=performance.now(),last=toks[toks.length-1].d+.7;
+  function anim(now){
+    if(my!==run)return;
+    const s=(now-st)/1000;
+    ctx.globalCompositeOperation='source-over';ctx.putImageData(snap,0,0);
+    const gr=ctx.createLinearGradient(0,y-fs*.5,0,y+fs*.5);
+    gr.addColorStop(0,'#fff9e6');gr.addColorStop(.5,'#f7d98a');gr.addColorStop(1,'#c8943a');
+    toks.forEach(o=>{
+      const a=ease((s-o.d)/.55);if(a<=0)return;
+      ctx.save();ctx.globalAlpha=a;ctx.translate(0,(1-a)*fs*.2);
+      ctx.shadowColor='rgba(70,0,10,.85)';ctx.shadowBlur=fs*.14;
+      if(o.heart){
+        const r=hw/2,cx=o.x,cy=y+fs*.04;
+        ctx.beginPath();ctx.moveTo(cx,cy+r*.9);
+        ctx.bezierCurveTo(cx-r*1.7,cy-r*.1,cx-r*.8,cy-r*1.4,cx,cy-r*.4);
+        ctx.bezierCurveTo(cx+r*.8,cy-r*1.4,cx+r*1.7,cy-r*.1,cx,cy+r*.9);ctx.closePath();
+        ctx.fillStyle=gr;ctx.fill();
+      }else{
+        ctx.font=font;ctx.textAlign='left';ctx.textBaseline='middle';
+        ctx.lineJoin='round';ctx.lineWidth=fs*.035;ctx.strokeStyle='rgba(90,10,15,.55)';
+        ctx.strokeText(o.ch,o.x,y);ctx.fillStyle=gr;ctx.fillText(o.ch,o.x,y);
+      }
+      ctx.restore();
+    });
+    if(s<last)raf=requestAnimationFrame(anim);
+  }
+  raf=requestAnimationFrame(anim);
+}
+document.getElementById('b').onclick=start;
+document.getElementById('n').onclick=writeName;
+start();
+</script>
+</body>
+</html>
